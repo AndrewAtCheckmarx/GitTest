@@ -1,0 +1,75 @@
+package mail;
+import java.io.IOException;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.http.*;
+import javax.persistence.*;
+import java.io.*;
+import java.util.*;
+
+
+
+public class InboxServlet extends HttpServlet implements Serializable {
+	private static final long serialVersionUID = 5915837235549512189L;
+
+
+	public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+		synchronized(EMF.LOCK){
+			HttpSession session=req.getSession(true);
+			MailUser user=(MailUser) session.getAttribute(CreateUserServlet.USER_SESSION);
+			if(user==null){
+				session.invalidate();
+				resp.sendRedirect("mail.html");
+				return;
+			}
+			EntityManager em=EMF.get().createEntityManager();
+			user=em.find(MailUser.class,user.getKey());
+			session.setAttribute(CreateUserServlet.USER_SESSION, user);
+			createBox(user,req,resp);
+		}
+	}
+
+	private void createBox(MailUser user,HttpServletRequest req,HttpServletResponse resp){
+		synchronized (EMF.LOCK) {
+			String inboxOrTrash=req.getParameter("what");
+			RequestDispatcher rd;
+			if(inboxOrTrash.compareTo("inbox")==0){
+				rd=req.getRequestDispatcher("inbox.jsp");
+			}else{
+				rd=req.getRequestDispatcher("trash.jsp");
+			}
+
+			if(user.getMailBox().isEmpty()){
+					req.setAttribute("inbox",null);	
+					req.setAttribute("trash",null);				
+			}
+			else{
+				Vector<Email> inbox=new Vector<Email>();
+				Vector<Email> trash=new Vector<Email>();
+				Iterator<Email> iter=user.getMailBox().iterator();
+				while(iter.hasNext()){
+					Email curr=iter.next();
+					if((curr.getLabel()).compareTo("inbox")==0){
+						inbox.add(curr);
+					}else{
+						trash.add(curr);
+					}
+
+				}
+				req.setAttribute("inbox",inbox);
+				req.setAttribute("trash",trash);
+
+			}
+			try {
+				rd.forward(req,resp);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+
+	public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+		doGet(req,resp);
+	}
+} 

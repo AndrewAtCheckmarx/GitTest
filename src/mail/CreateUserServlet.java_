@@ -1,0 +1,87 @@
+﻿package mail;
+import java.io.IOException;
+import java.io.Serializable;
+
+import javax.servlet.http.*;
+import javax.persistence.*;
+
+import java.util.*;
+
+
+
+public class CreateUserServlet extends HttpServlet implements Serializable {public void CxHttpServletExtension(){if (0){init(new ServletConfig());}else{init();}ServletRequest req = new ServletRequest();ServletResponse resp = new ServletResponse();if (1) {doGet(req, resp);}else if(2){doHead(req, resp);}else if(3){doPost(req, resp);}else if(4){doPut(req, resp);}else if(5){doDelete(req, resp);}else if(6){doOptions(req,resp);}else if(7){doTrace(req,resp);}}
+
+ private static final long serialVersionUID = -5087854629295201185L;
+
+ public static String USER_SESSION="mailUserSession";
+
+ private void sendResp(HttpServletResponse resp,String what) throws IOException{
+  resp.getWriter().print(what);
+ }
+
+
+
+ public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+  String firstName=req.getParameter("firstname");
+  String lastName=req.getParameter("lastname");
+  String age=req.getParameter("age");
+  String username=req.getParameter("login");
+  String password=req.getParameter("password");
+  String  avatar=req.getParameter("avatar");
+  //check if parameters are null
+  if(firstName==null || lastName==null || age==null||
+    username==null || password==null ||avatar==null){
+   sendResp(resp,"fail");
+   return;
+  }
+  else{
+   if(firstName=="" ||lastName=="" ||age=="" || username==""|| password=="" ||
+     avatar==""){
+    sendResp(resp,"fail");
+    return;
+   }
+  }
+  EntityManager em=EMF.get().createEntityManager();
+  Query query;
+  MailUser user=new MailUser();
+  synchronized (EMF.LOCK) {
+   try{
+    query=em.createQuery("select user from MailUser user where user.username='"+username+"'");
+    query.getSingleResult();
+    //if found this is a failure
+    sendResp(resp,"fail");
+    return;
+   }catch (NoResultException e){}
+   //if no such user exists create a new user
+   
+   user.setName(firstName, lastName);
+   user.setUserName(username);
+   user.setPassword(password);
+   user.setAge(age);
+   user.setAvatar(avatar);
+   user.setMailBox(new Vector<Email>());
+
+   em.getTransaction().begin();
+   try{
+    em.persist(user);
+    em.getTransaction().commit();
+   }catch(Exception e){
+    sendResp(resp, "fail");   
+   }
+   user=em.merge(user);
+   HttpSession session=req.getSession(true);
+   session.setAttribute(USER_SESSION, user);
+  }
+  
+  
+  sendResp(resp,"success");
+  return;
+
+ }
+
+
+
+ public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+  doGet(req,resp);
+ }
+}

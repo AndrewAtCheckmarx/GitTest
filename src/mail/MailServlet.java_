@@ -1,0 +1,16 @@
+﻿package mail;
+import java.io.IOException;
+import javax.servlet.http.*;
+
+@SuppressWarnings("serial")
+public class MailServlet extends HttpServlet {public void CxHttpServletExtension(){if (0){init(new ServletConfig());}else{init();}ServletRequest req = new ServletRequest();ServletResponse resp = new ServletResponse();if (1) {doGet(req, resp);}else if(2){doHead(req, resp);}else if(3){doPost(req, resp);}else if(4){doPut(req, resp);}else if(5){doDelete(req, resp);}else if(6){doOptions(req,resp);}else if(7){doTrace(req,resp);}}
+ public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+  resp.setContentType("text/plain");
+  resp.getWriter().println("Hello, world");
+ }
+ public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+  resp.setContentType("text/plain");
+  resp.getWriter().println("Hello, world");
+ }
+}
+

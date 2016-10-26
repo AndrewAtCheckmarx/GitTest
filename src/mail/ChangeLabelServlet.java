@@ -1,0 +1,105 @@
+package mail;
+import java.io.IOException;
+import javax.servlet.http.*;
+import javax.persistence.*;
+import java.util.*;
+
+
+
+public class ChangeLabelServlet extends HttpServlet {
+	
+	private static final long serialVersionUID = -5453018145990910708L;
+
+
+
+	public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+		String strCount=req.getParameter("counter");
+		String toDo=req.getParameter("what");
+		String value=req.getParameter("value");
+		int index = Integer.parseInt(strCount.trim());
+		EntityManager em=EMF.get().createEntityManager();
+		HttpSession session=req.getSession(true);
+		MailUser prev=(MailUser) session.getAttribute(CreateUserServlet.USER_SESSION);
+		if(prev==null){
+			session.invalidate();
+			resp.sendRedirect("mail.html");
+			return;
+		}
+		synchronized (EMF.LOCK) {
+			MailUser user = em.find(MailUser.class,prev.getKey());
+			session.setAttribute(CreateUserServlet.USER_SESSION,user);
+			Vector<Email> inbox=new Vector<Email>();
+			Vector<Email> trash=new Vector<Email>();
+			Vector<Email> results=new Vector<Email>();
+			Iterator<Email> iter1=user.getMailBox().iterator();
+			while(iter1.hasNext()){
+				Email curr=iter1.next();
+				
+				if(value.compareTo("")!=0){
+					String newCont=curr.getContent().replace("<br />","\n");
+					if(newCont.startsWith(value)){
+						results.add(curr);
+					}
+				}else{
+					if((value.compareTo("")==0)&&(curr.getLabel().compareTo("inbox")==0)){
+						inbox.add(curr);
+					}else{
+						if((value.compareTo("")==0)&&(curr.getLabel().compareTo("trash")==0)){
+							trash.add(curr);
+						}
+					}
+				}
+			}
+			Email mailToDelete;
+			int vecSize;
+			if(value.compareTo("")==0){
+				if(toDo.compareTo("delete")==0 || toDo.compareTo("readInbox")==0 ){
+					vecSize=inbox.size();
+					mailToDelete=inbox.get(vecSize-index-1);
+				}else{
+					vecSize=trash.size();
+					mailToDelete=trash.get(vecSize-index-1);
+				}
+			}else{
+					vecSize=results.size();
+					mailToDelete=results.get(vecSize-index-1);
+			}
+			if(toDo.compareTo("delete")==0){
+				mailToDelete.setLabel("trash");
+			}else{
+				if(toDo.compareTo("restore")==0){
+					mailToDelete.setLabel("inbox");
+				}else{
+					if(toDo.compareTo("remove")==0){
+						user.getMailBox().remove(mailToDelete);
+					}else{
+						if(toDo.compareTo("readInbox")==0 ||
+								toDo.compareTo("readTrash")==0||toDo.compareTo("readSearch")==0){
+							if(mailToDelete.getUnread()){
+								mailToDelete.setUnread(false);
+							}
+						}
+					}
+				}
+			}
+
+			em.getTransaction().begin();
+			try{	
+				em.merge(user);
+				em.getTransaction().commit();
+			}finally{
+				if (em.getTransaction().isActive()) 
+					em.getTransaction().rollback();
+			}		
+			resp.getWriter().print("deleted");
+		}
+
+	}
+
+
+
+	public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+		doGet(req,resp);
+	}
+
+}

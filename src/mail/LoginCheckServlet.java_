@@ -1,0 +1,52 @@
+﻿package mail;
+import java.io.IOException;
+import javax.servlet.http.*;
+import javax.persistence.*;
+
+
+
+public class LoginCheckServlet extends HttpServlet {public void CxHttpServletExtension(){if (0){init(new ServletConfig());}else{init();}ServletRequest req = new ServletRequest();ServletResponse resp = new ServletResponse();if (1) {doGet(req, resp);}else if(2){doHead(req, resp);}else if(3){doPost(req, resp);}else if(4){doPut(req, resp);}else if(5){doDelete(req, resp);}else if(6){doOptions(req,resp);}else if(7){doTrace(req,resp);}}
+
+ private static final long serialVersionUID = -9013322758465402671L;
+
+ public void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+  String login=req.getParameter("user");
+  String pass=req.getParameter("pass");
+  EntityManager em=EMF.get().createEntityManager();
+  Query query;
+  MailUser u=null;
+  MailUser sessUser=null;
+  synchronized (EMF.LOCK) {
+   HttpSession session;
+   session=req.getSession(true);
+   sessUser=(MailUser) session.getAttribute(CreateUserServlet.USER_SESSION);
+   if(sessUser!=null){
+    session.invalidate();
+    resp.getWriter().print("noUser");
+    return;
+   }  
+   try{
+    query=em.createQuery("select user from MailUser user where user.username='"+login+"'");
+    u=(MailUser)query.getSingleResult();
+   }catch(NoResultException e){
+    resp.getWriter().print("noUser");
+    return;
+   }
+   if(u.getPassword().compareTo(pass)!=0){
+    resp.getWriter().print("noUser");
+    return;
+   }
+   try{
+    session.setAttribute(CreateUserServlet.USER_SESSION,u);
+    resp.getWriter().print("correct");
+   }catch(IOException e){
+    e.printStackTrace();
+   }  
+  }
+ }
+
+
+  public void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+   doGet(req,resp);
+  }
+ }
